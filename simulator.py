@@ -34,16 +34,18 @@ def find_max_simulation_time(process_list):
     n = len(process_list)
     last_process = process_list[n-1]
     max_time = last_process.arrive_time + last_process.burst_time
-    return max_time
+    return max_time+30
 
-def get_total(processes):
-    total_w_time = 0
+def init_expected_burst_time(to_be_processed, initial_guess):
+    expected_burst_time = {}
+    for process in to_be_processed:
+        expected_burst_time[process.id] = initial_guess
+    return expected_burst_time
 
-    for process in processes:
-        print(process.wait_time)
-        total_w_time = total_w_time + process.wait_time
 
-    return total_w_time
+def find_expected_burst_time(alpha,actual_burst_time,prev_expected):
+    expected_burst = (alpha * actual_burst_time) + (1 - alpha) * prev_expected
+    return expected_burst
 
 def insert_into_wait_list_queue(wait_list, curr_process):
     ids = set()
@@ -82,29 +84,40 @@ def RR_scheduling(process_list, time_quantum):
     to_be_processed = copy.deepcopy(process_list)
     schedule = []
 
-    ids = find_unique_process(to_be_processed)
-    n = len(ids)
-    while to_be_processed.__len__() > 0:
-        for x in range(n):
-            tbd_process = to_be_processed[0]
-            processing_queue.append(tbd_process)
-            to_be_processed.pop(0)
+    max_time = find_max_simulation_time(process_list)
 
-        while processing_queue.__len__() > 0:
-            current_process = processing_queue.pop(0)
-            if(current_time < current_process.last_scheduled_time):
-                current_time = current_process.last_scheduled_time
-            waiting_time = waiting_time + (current_time - current_process.last_scheduled_time);
-            schedule.append((current_time, current_process.id))  # processing
-            if current_process.burst_time > time_quantum:
-                current_time += time_quantum
-                current_process.burst_time -= time_quantum
-                current_process.last_scheduled_time = current_time
-                processing_queue.append(current_process)
+    while current_time < max_time:
+        while to_be_processed.__len__() > 0:
+            tbd_process = to_be_processed[0]
+            arrival = tbd_process.arrive_time
+            if arrival <= current_time+time_quantum:
+                processing_queue.append(tbd_process)
+                to_be_processed.pop(0)
             else:
-                current_time += current_process.burst_time
-                current_process.burst_time = 0
-                current_process.last_scheduled_time = current_time
+                break
+
+        if processing_queue.__len__() > 0:
+            current_process = processing_queue[0]
+            arrival = current_process.arrive_time
+            if arrival <= current_time:
+                current_process = processing_queue.pop(0)
+                if current_time < current_process.last_scheduled_time:
+                    current_time = current_process.last_scheduled_time
+                waiting_time = waiting_time + (current_time - current_process.last_scheduled_time);
+                schedule.append((current_time, current_process.id))  # processing
+                if current_process.burst_time > time_quantum:
+                    current_time += time_quantum
+                    current_process.burst_time -= time_quantum
+                    current_process.last_scheduled_time = current_time
+                    processing_queue.append(current_process)
+                else:
+                    current_time += current_process.burst_time
+                    current_process.burst_time = 0
+                    current_process.last_scheduled_time = current_time
+            else:
+                current_time += 1
+        else:
+            current_time += 1
 
     average_waiting_time = waiting_time / float(len(process_list))
     return schedule, average_waiting_time
@@ -118,7 +131,6 @@ def SRTF_scheduling(process_list):
 
     max_time = find_max_simulation_time(process_list)
 
-    print(max_time)
     for i in range(max_time):
         current_time = i
         if to_be_processed.__len__() > 0:
@@ -143,14 +155,45 @@ def SRTF_scheduling(process_list):
                 current_time += 1
                 curr_process.last_scheduled_time = current_time
 
-
     average_waiting_time = waiting_time / float(len(process_list))
     return schedule, average_waiting_time
 
-
-
 def SJF_scheduling(process_list, alpha):
-    return (["to be completed, scheduling SJF without using information from process.burst_time"],0.0)
+    current_time = 0
+    waiting_time = 0
+    processing_queue = []
+    to_be_processed = copy.deepcopy(process_list)
+    schedule = []
+
+    max_time = find_max_simulation_time(process_list)
+
+    expected_burst_time = init_expected_burst_time(to_be_processed, initial_guess=5)
+
+    while current_time < max_time:
+        while to_be_processed.__len__() > 0:
+            tbd_process = to_be_processed[0]
+            arrival = tbd_process.arrive_time
+            if arrival <= current_time:
+                process_id = tbd_process.id
+                tbd_process.expected_btime = expected_burst_time[process_id]
+                processing_queue.append(tbd_process)
+                to_be_processed.pop(0)
+            else:
+                break
+
+        if processing_queue.__len__() > 0:
+            processing_queue = sorted(processing_queue, key=lambda x: x.expected_btime)
+            current_process = processing_queue.pop(0)
+            waiting_time = waiting_time + (current_time - current_process.last_scheduled_time);
+            schedule.append((current_time, current_process.id))  # processing
+            current_time += current_process.burst_time
+            process_id = current_process.id
+            expected_burst_time[process_id] = find_expected_burst_time(alpha, current_process.burst_time, current_process.expected_btime)
+        else:
+            current_time += 1
+
+    average_waiting_time = waiting_time / float(len(process_list))
+    return schedule, average_waiting_time
 
 
 def read_input():
