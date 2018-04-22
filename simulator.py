@@ -18,6 +18,7 @@ Revision 2:
     Thanks Lee Wei Ping for trying and pointing out the difficulty & ambiguity with future_prediction SRTF.
 '''
 import sys
+import copy
 
 input_file = 'input.txt'
 
@@ -37,6 +38,12 @@ def find_unique_process(to_be_processed):
     for process in to_be_processed:
         ids.add(process.id)
     return ids
+
+def find_max_simulation_time(process_list):
+    n = len(process_list)
+    last_process = process_list[n-1]
+    max_time = last_process.arrive_time + last_process.burst_time
+    return max_time
 
 def get_total(processes):
     total_w_time = 0
@@ -81,7 +88,7 @@ def RR_scheduling(process_list, time_quantum):
     current_time = 0
     waiting_time = 0
     processing_queue = []
-    to_be_processed = process_list.copy()
+    to_be_processed = copy.deepcopy(process_list)
     schedule = []
 
     ids = find_unique_process(to_be_processed)
@@ -112,7 +119,44 @@ def RR_scheduling(process_list, time_quantum):
     return schedule, average_waiting_time
 
 def SRTF_scheduling(process_list):
-    return (["to be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process "], 0.0)
+    current_time = 0
+    waiting_time = 0
+    processing_queue = []
+    to_be_processed = copy.deepcopy(process_list)
+    schedule = []
+
+    max_time = find_max_simulation_time(process_list)
+
+    print(max_time)
+    for i in range(max_time):
+        current_time = i
+        if to_be_processed.__len__() > 0:
+            tbd_process = to_be_processed[0]
+            if tbd_process.arrive_time == current_time:
+                processing_queue.append(tbd_process)
+                to_be_processed.pop(0)
+
+        if processing_queue.__len__() > 0:
+            processing_queue = sorted(processing_queue, key=lambda x: x.burst_time)
+            curr_process = processing_queue.pop(0)
+            schedule.append((current_time, curr_process.id))  # processing
+            if curr_process.burst_time > 1:
+                curr_process.burst_time -= 1
+                waiting_time = waiting_time + (current_time - curr_process.last_scheduled_time)
+                current_time += 1
+                curr_process.last_scheduled_time = current_time
+                processing_queue.append(curr_process)
+            else:
+                curr_process.burst_time = 0
+                waiting_time = waiting_time + (current_time - curr_process.last_scheduled_time)
+                current_time += 1
+                curr_process.last_scheduled_time = current_time
+
+
+    average_waiting_time = waiting_time / float(len(process_list))
+    return schedule, average_waiting_time
+
+
 
 def SJF_scheduling(process_list, alpha):
     return (["to be completed, scheduling SJF without using information from process.burst_time"],0.0)
