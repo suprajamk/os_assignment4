@@ -131,8 +131,7 @@ def SRTF_scheduling(process_list):
 
     max_time = find_max_simulation_time(process_list)
 
-    for i in range(max_time):
-        current_time = i
+    while current_time < max_time:
         if to_be_processed.__len__() > 0:
             tbd_process = to_be_processed[0]
             if tbd_process.arrive_time == current_time:
@@ -154,6 +153,8 @@ def SRTF_scheduling(process_list):
                 waiting_time = waiting_time + (current_time - curr_process.last_scheduled_time)
                 current_time += 1
                 curr_process.last_scheduled_time = current_time
+        else:
+            current_time += 1
 
     average_waiting_time = waiting_time / float(len(process_list))
     return schedule, average_waiting_time
