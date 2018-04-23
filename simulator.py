@@ -24,12 +24,6 @@ class Process:
     def __repr__(self):
         return ('[id %d : arrive_time %d,  burst_time %d]'%(self.id, self.arrive_time, self.burst_time))
 
-def find_unique_process(to_be_processed):
-    ids = set()
-    for process in to_be_processed:
-        ids.add(process.id)
-    return ids
-
 def find_max_simulation_time(process_list):
     n = len(process_list)
     last_process = process_list[n-1]
@@ -44,21 +38,8 @@ def init_expected_burst_time(to_be_processed, initial_guess):
 
 
 def find_expected_burst_time(alpha,actual_burst_time,prev_expected):
-    expected_burst = (alpha * actual_burst_time) + (1 - alpha) * prev_expected
+    expected_burst = (alpha * actual_burst_time) + ((1 - alpha) * prev_expected)
     return expected_burst
-
-def insert_into_wait_list_queue(wait_list, curr_process):
-    ids = set()
-    for process in wait_list:
-        ids.add(process.id)
-    print (ids)
-    index = len(ids) - 1
-    prev_process = wait_list[index]
-    if(prev_process.arrive_time >= curr_process.arrive_time):
-        wait_list.insert(index+1, curr_process)
-    else:
-        wait_list.insert(index, curr_process)
-    return wait_list
 
 def FCFS_scheduling(process_list):
     #store the (switching time, proccess_id) pair
