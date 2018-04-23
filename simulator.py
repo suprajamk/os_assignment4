@@ -36,6 +36,16 @@ def init_expected_burst_time(to_be_processed, initial_guess):
         expected_burst_time[process.id] = initial_guess
     return expected_burst_time
 
+def schedule_appender(schedule,current_time, process_id):
+    n = len(schedule)
+    if n > 0:
+        last_schedule = schedule[n-1]
+        previous_process = last_schedule[1]
+        if process_id != previous_process:
+            schedule.append((current_time, process_id))
+    else:
+        schedule.append((current_time, process_id))
+
 
 def find_expected_burst_time(alpha,actual_burst_time,prev_expected):
     expected_burst = (alpha * actual_burst_time) + ((1 - alpha) * prev_expected)
@@ -85,7 +95,7 @@ def RR_scheduling(process_list, time_quantum):
                 if current_time < current_process.last_scheduled_time:
                     current_time = current_process.last_scheduled_time
                 waiting_time = waiting_time + (current_time - current_process.last_scheduled_time);
-                schedule.append((current_time, current_process.id))  # processing
+                schedule_appender(schedule, current_time, current_process.id)  # processing
                 if current_process.burst_time > time_quantum:
                     current_time += time_quantum
                     current_process.burst_time -= time_quantum
@@ -122,7 +132,7 @@ def SRTF_scheduling(process_list):
         if processing_queue.__len__() > 0:
             processing_queue = sorted(processing_queue, key=lambda x: x.burst_time)
             curr_process = processing_queue.pop(0)
-            schedule.append((current_time, curr_process.id))  # processing
+            schedule_appender(schedule, current_time, curr_process.id)# processing
             if curr_process.burst_time > 1:
                 curr_process.burst_time -= 1
                 waiting_time = waiting_time + (current_time - curr_process.last_scheduled_time)
